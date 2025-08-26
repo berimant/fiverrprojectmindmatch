@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Validator;
 
 class InterestController extends Controller
 {
+    // ini interest user per id
     public function getInterests(Request $request)
     {
         try {
@@ -31,6 +32,23 @@ class InterestController extends Controller
             return response()->json(['message' => 'Interests retrieved', 'data' => $interests], 200);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Failed to get interests', 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    // New method to get ALL available interests from the interests table
+    public function getAllInterests(Request $request)
+    {
+        try {
+            $interests = Interest::all()->map(function ($interest) {
+                return [
+                    'id' => $interest->id,
+                    'name' => $interest->name,
+                    'created_at' => $interest->created_at
+                ];
+            });
+            return response()->json(['message' => 'All interests retrieved', 'data' => $interests], 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Failed to get all interests', 'error' => $e->getMessage()], 500);
         }
     }
 
@@ -273,4 +291,33 @@ public function match(Request $request)
         ]
     ], 200);
 }
+
+
+// Fungsi baru untuk memperbarui status online
+    public function updateUserOnlineStatus(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|exists:users,id',
+            'is_online' => 'required|integer|in:0,1',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => $validator->errors()->first()], 400);
+        }
+
+        $user = User::find($request->user_id);
+
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+
+        $user->is_online = $request->is_online;
+        $user->save();
+
+        return response()->json([
+            'message' => 'User online status updated successfully.',
+            'is_online' => $user->is_online
+        ], 200);
+    }
+
 }

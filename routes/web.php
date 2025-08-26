@@ -8,6 +8,7 @@ $router->get('/', function () use ($router) {
 $router->post('/register', 'AuthController@register');
 $router->post('/login', 'AuthController@login');
 $router->get('/interests', 'InterestController@getInterests');
+$router->get('/all_interests', 'InterestController@getAllInterests');
 $router->post('/interests', 'InterestController@addInterest');
 $router->delete('/interests', 'InterestController@deleteInterest');
 $router->delete('/interests/{id}', 'InterestController@deleteInterestFromTable');
@@ -25,4 +26,6 @@ $router->get('/private_chat/{user_id}/{friend_id}', 'FriendController@getPrivate
 $router->post('/private_chat', 'FriendController@sendPrivateMessage');
 $router->delete('/private_chat', 'FriendController@clearPrivateChat');
 $router->get('/check_active_match/{user_id}', 'ChatController@checkActiveMatch');
+// Route baru untuk memperbarui status online
+$router->post('/users/online-status', 'InterestController@updateUserOnlineStatus');
 
