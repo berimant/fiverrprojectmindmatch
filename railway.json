@@ -1,6 +1,15 @@
 {
+  "build": {
+    "builder": "nixpacks"
+  },
   "deploy": {
-    "startCommand": "php -S 0.0.0.0:8000 -t public",
-    "post-deploy": "php artisan migrate:fresh --seed"
+    "restartPolicy": {
+      "maxRetries": 3
+    },
+    "healthcheckPath": "/",
+    "post-deploy": [
+      "php artisan migrate --force",
+      "php artisan db:seed"
+    ]
   }
 }
