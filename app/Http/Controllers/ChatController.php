@@ -17,8 +17,21 @@ class ChatController extends Controller
         $this->interestController = $interestController;
     }
 
-    public function getChat(Request $request, $match_id)
+    public function getChat2(Request $request, $match_id)
     {
+        $messages = Message::where('match_id', $match_id)->get();
+        return response()->json(['messages' => $messages], 200);
+    }
+
+     public function getChat(Request $request, $match_id)
+    {
+        // Solusi yang disarankan: Periksa apakah match masih ada
+        $match = MatchFriends::find($match_id);
+        if (!$match) {
+            // Jika match tidak ditemukan, kembalikan 404 Not Found
+            return response()->json(['message' => 'Match not found'], 404);
+        }
+
         $messages = Message::where('match_id', $match_id)->get();
         return response()->json(['messages' => $messages], 200);
     }
