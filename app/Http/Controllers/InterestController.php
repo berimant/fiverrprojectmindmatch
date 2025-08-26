@@ -159,6 +159,122 @@ public function match(Request $request)
     $user->is_online = ($mode === 'online') ? 1 : 0;
     $user->save();
 
+    // 1. Cek apakah pengguna saat ini sudah punya match yang aktif.
+    $existingMatch = MatchFriends::where(function ($query) use ($userId) {
+        $query->where('user1_id', $userId)
+              ->orWhere('user2_id', $userId);
+    })->where('is_active', true)->first();
+
+    if ($existingMatch) {
+        // Jika match sudah ada, kembalikan match_id yang sama.
+        return response()->json([
+            'message' => 'Match already exists',
+            'match_id' => $existingMatch->id,
+            'matches' => [
+                [
+                    'id' => ($existingMatch->user1_id == $userId) ? $existingMatch->user2_id : $existingMatch->user1_id,
+                    'phone_number' => null, // Data ini tidak diambil di sini
+                    'name' => null,
+                    'profile_status' => null
+                ]
+            ]
+        ], 200);
+    }
+
+    // 2. Cari pengguna yang memiliki minat yang sama.
+    $query = User::whereHas('interests', function ($q) use ($interestIds) {
+        $q->whereIn('interests.id', $interestIds);
+    })
+        ->where('id', '!=', $userId)
+        ->whereDoesntHave('matchFriends', function ($q) use ($userId) {
+            $q->where('is_active', true)
+              ->where(function ($q) use ($userId) {
+                  $q->where('user1_id', $userId)->orWhere('user2_id', $userId);
+              });
+        });
+
+    if ($mode === 'online') {
+        $query->where('is_online', 1);
+    }
+
+    $matchedUser = $query->inRandomOrder()->first();
+
+    if (!$matchedUser) {
+        return response()->json(['message' => 'No match found'], 404);
+    }
+
+    // 3. Cek apakah pasangan sudah membuat match dengan pengguna ini.
+    $existingMatchPartnerSide = MatchFriends::where(function ($query) use ($userId, $matchedUser) {
+        $query->where('user1_id', $matchedUser->id)
+              ->where('user2_id', $userId);
+    })->orWhere(function ($query) use ($userId, $matchedUser) {
+        $query->where('user1_id', $userId)
+              ->where('user2_id', $matchedUser->id);
+    })->where('is_active', true)->first();
+
+    if ($existingMatchPartnerSide) {
+        return response()->json([
+            'message' => 'Match found (existing)',
+            'match_id' => $existingMatchPartnerSide->id,
+            'matches' => [
+                [
+                    'id' => $matchedUser->id,
+                    'phone_number' => $matchedUser->phone_number,
+                    'name' => $matchedUser->name,
+                    'profile_status' => $matchedUser->profile_status
+                ]
+            ]
+        ], 200);
+    }
+
+    // 4. Jika tidak ada match yang sudah ada, buat yang baru.
+    $match = MatchFriends::create([
+        'user1_id' => $userId,
+        'user2_id' => $matchedUser->id,
+        'is_active' => true,
+        'mode' => $mode,
+    ]);
+
+    return response()->json([
+        'message' => 'Match found (new)',
+        'match_id' => $match->id,
+        'matches' => [
+            [
+                'id' => $matchedUser->id,
+                'phone_number' => $matchedUser->phone_number,
+                'name' => $matchedUser->name,
+                'profile_status' => $matchedUser->profile_status
+            ]
+        ]
+    ], 200);
+}
+
+//ini match terakhir bisa dihapus kalo sudah berhasil fungsi terbaru
+public function match1(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'user_id' => 'required|exists:users,id',
+        'interest_ids' => 'required|array',
+        'interest_ids.*' => 'exists:interests,id',
+        'mode' => 'required|in:online,offline',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['message' => $validator->errors()->first()], 400);
+    }
+
+    $userId = $request->user_id;
+    $interestIds = $request->interest_ids;
+    $mode = $request->mode;
+
+    $user = User::find($userId);
+    if (!$user) {
+        return response()->json(['message' => 'User not found'], 404);
+    }
+
+    $user->is_online = ($mode === 'online') ? 1 : 0;
+    $user->save();
+
     // Delete all existing matches and messages for this user
     $existingMatches = MatchFriends::where('user1_id', $userId)->orWhere('user2_id', $userId)->get();
     foreach ($existingMatches as $existingMatch) {
@@ -203,6 +319,8 @@ public function match(Request $request)
         ]
     ], 200);
 }
+
+//ini match terakhir bisa dihapus kalo sudah berhasil fungsi terbaru
 
  public function match2(Request $request)
 {
