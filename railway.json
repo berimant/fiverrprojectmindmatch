@@ -1,14 +1,15 @@
-{
-  "build": {
-    "builder": "nixpacks"
-  },
-  "deploy": {
-    "restartPolicy": {
-      "maxRetries": 3
-    },
-    "healthcheckPath": "/",
-    "post-deploy": [
-      "php artisan migrate --force"
-    ]
-  }
-}
+    {
+      "build": {
+        "builder": "nixpacks"
+      },
+      "deploy": {
+        "restartPolicy": {
+          "maxRetries": 3
+        },
+        "healthcheckPath": "/",
+        "post-deploy": [
+          "php artisan migrate --force"
+        ]
+      }
+    }
+    
