@@ -1,9 +1,11 @@
 # Menggunakan image resmi PHP 8.1 dengan FPM dan Alpine
-# Alpine adalah image yang sangat ringan
 FROM php:8.1-fpm-alpine
 
-# Menginstal dependensi sistem yang diperlukan untuk composer
-RUN apk add --no-cache git
+# Menginstal dependensi sistem yang diperlukan: git, mysql-client, dan ekstensi pdo_mysql
+RUN apk add --no-cache \
+    git \
+    mysql-client \
+    && docker-php-ext-install pdo_mysql
 
 # Menginstal Composer
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
